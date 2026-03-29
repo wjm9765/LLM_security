@@ -29,7 +29,13 @@ def main():
     print("="*60)
 
     # [Step 1] 데이터 수집
-    prompts = download_and_sample(str(PROMPTS_FILE), num_samples=100)
+    if PROMPTS_FILE.exists():
+        print(f"\n[Step 1] '{PROMPTS_FILE}'이 이미 존재하여 다운로드 과정을 스킵합니다.")
+        import json
+        with open(PROMPTS_FILE, 'r', encoding='utf-8') as f:
+            prompts = json.load(f)
+    else:
+        prompts = download_and_sample(str(PROMPTS_FILE), num_samples=100)
     
     # [Step 2] TTS
     generate_audios(prompts, str(AUDIO_DIR))

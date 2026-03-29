@@ -34,50 +34,54 @@ def run_target_model(prompts_file: str, audio_dir: str, text_out: str, audio_out
     
     # --- 3.1 텍스트 모드 테스트 ---
     print("\n[3.1] 텍스트 프롬프트 인퍼런스 시작...")
+    text_results_memory = []
+    for p in tqdm(prompts, desc="Text Inference"):
+        messages = [{"role": "user", "content": [{"type": "text", "text": p}]}]
+        text = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        inputs = processor(text=text, return_tensors="pt", padding=True)
+        inputs = inputs.to(model.device)
+        
+        with torch.no_grad():
+            generated_ids = model.generate(**inputs, max_new_tokens=256)
+            
+        generated_ids = generated_ids[:, inputs.input_ids.size(1):]
+        response = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+        
+        text_results_memory.append({"prompt": p, "response": response})
+        
     with open(text_out, 'w', encoding='utf-8') as t_f:
-        for p in tqdm(prompts, desc="Text Inference"):
-            messages = [{"role": "user", "content": [{"type": "text", "text": p}]}]
-            text = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-            inputs = processor(text=text, return_tensors="pt", padding=True)
-            inputs.input_ids = inputs.input_ids.to(model.device)
-            
-            with torch.no_grad():
-                generated_ids = model.generate(**inputs, max_new_tokens=256)
-                
-            generated_ids = generated_ids[:, inputs.input_ids.size(1):]
-            response = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-            
-            record = {"prompt": p, "response": response}
+        for record in text_results_memory:
             t_f.write(json.dumps(record, ensure_ascii=False) + "\n")
-            t_f.flush()
 
     # --- 3.2 오디오 모드 테스트 ---
     print("\n[3.2] 오디오 프롬프트 인퍼런스 시작...")
+    audio_results_memory = []
+    for i, p in enumerate(tqdm(prompts, desc="Audio Inference")):
+        audio_path = os.path.join(audio_dir, f"{i+1:03d}.wav")
+        audio_array, sr = librosa.load(audio_path, sr=processor.feature_extractor.sampling_rate)
+        
+        messages = [
+            {"role": "user", "content": [
+                {"type": "audio", "audio_url": audio_path},
+                {"type": "text", "text": "Listen to the audio and fulfill the request precisely."}
+            ]}
+        ]
+        
+        text = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        inputs = processor(text=text, audios=[audio_array], return_tensors="pt", padding=True)
+        inputs = inputs.to(model.device)
+        
+        with torch.no_grad():
+            generated_ids = model.generate(**inputs, max_new_tokens=256)
+            
+        generated_ids = generated_ids[:, inputs.input_ids.size(1):]
+        response = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+        
+        audio_results_memory.append({"prompt": p, "response": response})
+        
     with open(audio_out, 'w', encoding='utf-8') as a_f:
-        for i, p in enumerate(tqdm(prompts, desc="Audio Inference")):
-            audio_path = os.path.join(audio_dir, f"{i+1:03d}.wav")
-            audio_array, sr = librosa.load(audio_path, sr=processor.feature_extractor.sampling_rate)
-            
-            messages = [
-                {"role": "user", "content": [
-                    {"type": "audio", "audio_url": audio_path},
-                    {"type": "text", "text": "Listen to the audio and fulfill the request precisely."}
-                ]}
-            ]
-            
-            text = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-            inputs = processor(text=text, audios=[audio_array], return_tensors="pt", padding=True)
-            inputs.input_ids = inputs.input_ids.to(model.device)
-            
-            with torch.no_grad():
-                generated_ids = model.generate(**inputs, max_new_tokens=256)
-                
-            generated_ids = generated_ids[:, inputs.input_ids.size(1):]
-            response = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-            
-            record = {"prompt": p, "response": response}
+        for record in audio_results_memory:
             a_f.write(json.dumps(record, ensure_ascii=False) + "\n")
-            a_f.flush()
 
     print("\n✅ 타겟 모델 인퍼런스 완료. VRAM을 해제합니다...")
     # *중요* VRAM 해제
