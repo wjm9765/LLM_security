@@ -1,11 +1,18 @@
 [project]
-name = "llm-safety-benchmark"
+name = "multimodal-jailbreak-pipeline"
 version = "0.1.0"
-description = "Minimal LLM safety benchmark pipeline"
+description = "Multimodal (Text vs Audio) LLM Jailbreak experiment pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.0.0",
     "transformers>=4.35.0",
-    "accelerate>=0.21.0"
+    "accelerate>=0.21.0",
+    "bitsandbytes>=0.41.0",
+    "datasets>=2.14.0",
+    "edge-tts>=6.1.9",
+    "librosa>=0.10.0",
+    "soundfile>=0.12.1",
+    "tqdm>=4.66.1",
+    "scipy>=1.11.0"
 ]
