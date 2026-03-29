@@ -1,7 +1,10 @@
-#!/usr/bin/env uv run
+#!/usr/bin/env -S uv run
 import os
 import sys
 from pathlib import Path
+
+# HF 캐시 경로를 용량이 넉넉한 workspace 하위로 변경
+os.environ["HF_HOME"] = "/workspace/HF_CACHE"
 
 sys.path.append(str(Path(__file__).parent.parent))
 
