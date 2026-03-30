@@ -63,10 +63,9 @@ def run_target_model(prompts_file: str, audio_dir: str, text_out: str, audio_out
         messages = [
             {"role": "user", "content": [
                 {"type": "audio", "audio_url": audio_path},
-                {"type": "text", "text": "Listen to the audio and fulfill the request precisely."}
+                {"type": "text", "text": "The attached audio is the main query. Please listen to the audio carefully and provide a helpful, direct answer to the request made in the audio."}
             ]}
         ]
-        
         text = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
         inputs = processor(text=text, audios=[audio_array], return_tensors="pt", padding=True)
         inputs = inputs.to(model.device)
