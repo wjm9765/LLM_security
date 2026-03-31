@@ -9,7 +9,7 @@ class TargetModelWrapper:
         self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
             model_id, 
             torch_dtype=torch.float16, 
-            device_map=device
+            device_map="auto"
         )
         self.model.eval()
 
@@ -20,10 +20,18 @@ class TargetModelWrapper:
         
         # Audio handling (if present in messages, prepare it)
         # Pass sampling_rate to avoid WhisperFeatureExtractor warnings
+        # Qwen2AudioProcessor는 인자로 'audios'를 받습니다. .to() 체이닝은 아래로 분리합니다.
         if audio is not None:
-            inputs = self.processor(text=text, audio=audio, return_tensors="pt", padding=True, sampling_rate=16000).to(self.device)
+            inputs = self.processor(text=text, audios=audio, return_tensors="pt", padding=True, sampling_rate=16000)
         else:
-            inputs = self.processor(text=text, return_tensors="pt", padding=True).to(self.device)
+            inputs = self.processor(text=text, return_tensors="pt", padding=True)
+        
+        # 1. 모델이 실제로 올라간 디바이스에 텐서를 맞춤 (가장 안전한 방식)
+        inputs = inputs.to(self.model.device)
+        
+        # 2. 오디오가 없을 때(D1, D2) 불필요하게 생성된 빈 오디오 키 삭제 (Forward 에러 방지)
+        if audio is None and "audio_features" in inputs:
+            del inputs["audio_features"]
         
         outputs = self.model(**inputs, output_hidden_states=True)
         hidden_states = outputs.hidden_states[target_layer] # shape: (batch_size, seq_len, hidden_size)
