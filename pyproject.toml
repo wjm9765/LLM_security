@@ -12,6 +12,7 @@ dependencies = [
     "torchaudio==2.1.2",
     "transformers",
     "accelerate",
+    "bitsandbytes",
     "numpy",
     "pandas",
     "scikit-learn",

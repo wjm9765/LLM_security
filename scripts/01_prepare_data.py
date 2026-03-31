@@ -11,13 +11,22 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from src.data_utils import load_config, download_advbench, save_json
 
 def generate_safe_text(harmful_prompts, helper_model_id, device):
-    print(f"Loading helper model: {helper_model_id}")
-    generator = pipeline(
-        "text-generation", 
-        model=helper_model_id, 
-        device=0 if device == "cuda" else -1,
-        torch_dtype="auto"
-    )
+    print(f"Loading helper model: {helper_model_id} (4-bit Quantized)")
+    
+    # 4-bit 양자화를 위한 모델 인자 설정 (CUDA 환경일 때만 적용)
+    if device == "cuda":
+        generator = pipeline(
+            "text-generation", 
+            model=helper_model_id, 
+            model_kwargs={"load_in_4bit": True},
+            device_map="auto"
+        )
+    else:
+        generator = pipeline(
+            "text-generation", 
+            model=helper_model_id, 
+            device=-1
+        )
     
     safe_texts = []
     for prompt in harmful_prompts:
