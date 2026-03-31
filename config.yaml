@@ -1,0 +1,11 @@
+data:
+  num_samples: 100
+  sample_rate: 16000
+  advbench_url: "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/data/advbench/harmful_behaviors.csv"
+local_helper_model:
+  model_id: "meta-llama/Meta-Llama-3-8B-Instruct"
+  device: "cuda"
+target_model:
+  model_id: "Qwen/Qwen2-Audio-7B-Instruct"
+  target_layer: 15
+  device: "cuda"
