@@ -20,9 +20,9 @@ class TargetModelWrapper:
         
         # Audio handling (if present in messages, prepare it)
         # Pass sampling_rate to avoid WhisperFeatureExtractor warnings
-        # Qwen2AudioProcessor는 인자로 'audios'를 받습니다. .to() 체이닝은 아래로 분리합니다.
+        # Qwen2AudioProcessor의 transformers 버전에 따라 `audio` 단수형 인자를 받습니다.
         if audio is not None:
-            inputs = self.processor(text=text, audios=audio, return_tensors="pt", padding=True, sampling_rate=16000)
+            inputs = self.processor(text=text, audio=audio, return_tensors="pt", padding=True, sampling_rate=16000)
         else:
             inputs = self.processor(text=text, return_tensors="pt", padding=True)
         
