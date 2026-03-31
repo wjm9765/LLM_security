@@ -3,7 +3,7 @@ data:
   sample_rate: 16000
   advbench_url: "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/data/advbench/harmful_behaviors.csv"
 local_helper_model:
-  model_id: "meta-llama/Meta-Llama-3-8B-Instruct"
+  model_id: "Qwen/Qwen1.5-7B-Chat"
   device: "cuda"
 target_model:
   model_id: "Qwen/Qwen2-Audio-7B-Instruct"

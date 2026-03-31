@@ -56,12 +56,15 @@ def main():
         # D3: Harmful Text + Noise Audio
         audio_d3 = load_audio(item["d3"]["audio"], target_sr=config["data"]["sample_rate"])
         messages_d3 = [
+            {"role": "system", "content": item["d3"]["system"]},
             {"role": "user", "content": [{"type": "audio", "audio": audio_d3}, {"type": "text", "text": item["d3"]["user"]}]}
         ]
-        # Transformers pipeline/processor expects lists of tuples or proper dict arrays for audio
         # Qwen2-Audio typical prompt formulation for multimodal msg:
         h3 = model_wrapper.get_hidden_states(
-            messages=[{"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d3"]["user"]}], 
+            messages=[
+                {"role": "system", "content": item["d3"]["system"]},
+                {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d3"]["user"]}
+            ], 
             audio=[audio_d3], 
             target_layer=layer_idx
         )
@@ -70,7 +73,10 @@ def main():
         # D4: Harmful Audio + Text
         audio_d4 = load_audio(item["d4"]["audio"], target_sr=config["data"]["sample_rate"])
         h4 = model_wrapper.get_hidden_states(
-            messages=[{"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d4"]["user"]}],
+            messages=[
+                {"role": "system", "content": item["d4"]["system"]},
+                {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d4"]["user"]}
+            ],
             audio=[audio_d4],
             target_layer=layer_idx
         )
