@@ -1,5 +1,5 @@
 data:
-  num_samples: 100
+  num_samples: 400
   sample_rate: 16000
   advbench_url: "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/data/advbench/harmful_behaviors.csv"
 local_helper_model:

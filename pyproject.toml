@@ -20,5 +20,6 @@ dependencies = [
     "soundfile",
     "librosa",
     "pyyaml",
-    "gtts"
+    "gtts",
+    "tqdm"
 ]
