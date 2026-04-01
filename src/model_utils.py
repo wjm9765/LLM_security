@@ -54,6 +54,3 @@ class TargetModelWrapper:
         response_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
         return target_hidden_state, response_text
-            target_token_idx = -1
-            
-        return hidden_states[:, target_token_idx, :].cpu().numpy()
