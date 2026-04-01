@@ -45,7 +45,12 @@ class TargetModelWrapper:
         else:
             target_token_idx = -1
             
+        # Target token (right before <|im_end|>)
         target_hidden_state = hidden_states[:, target_token_idx, :].cpu().numpy()[0]
+        
+        # Absolute last token before generation starts (after all <|im_start|>assistant etc.)
+        post_inst_token_idx = -1
+        post_inst_hidden_state = hidden_states[:, post_inst_token_idx, :].cpu().numpy()[0]
         
         # 2. Generation (for text output)
         generate_outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
@@ -53,4 +58,4 @@ class TargetModelWrapper:
         generated_ids = generate_outputs[:, input_length:]
         response_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
-        return target_hidden_state, response_text
+        return {"v_inst": target_hidden_state, "v_post_inst": post_inst_hidden_state}, response_text

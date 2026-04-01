@@ -34,7 +34,8 @@ def main():
     
     layer_idx = config["target_model"]["target_layer"]
     
-    d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors = [], [], [], [], [], []
+    d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst = [], [], [], [], [], []
+    d1_post, d2_post, d3_post, d4_post, d5_post, d6_post = [], [], [], [], [], []
     tts_engines = []
     model_responses = []
     
@@ -55,27 +56,33 @@ def main():
 
         # D1: Safe
         h1, r1 = proc([{"role": "system", "content": item["d1"]["system"]}, {"role": "user", "content": item["d1"]["user"]}])
-        d1_vectors.append(h1)
+        d1_inst.append(h1["v_inst"])
+        d1_post.append(h1["v_post_inst"])
         
         # D2: Harmful Text
         h2, r2 = proc([{"role": "system", "content": item["d2"]["system"]}, {"role": "user", "content": item["d2"]["user"]}])
-        d2_vectors.append(h2)
+        d2_inst.append(h2["v_inst"])
+        d2_post.append(h2["v_post_inst"])
         
         # D3: Noise + Harmful
         h3, r3 = proc([{"role": "system", "content": item["d3"]["system"]}, {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d3"]["user"]}], item["d3"]["audio"])
-        d3_vectors.append(h3)
+        d3_inst.append(h3["v_inst"])
+        d3_post.append(h3["v_post_inst"])
         
         # D4: TTS Harmful Audio + Text
         h4, r4 = proc([{"role": "system", "content": item["d4"]["system"]}, {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d4"]["user"]}], item["d4"]["audio"])
-        d4_vectors.append(h4)
+        d4_inst.append(h4["v_inst"])
+        d4_post.append(h4["v_post_inst"])
         
         # D5: Noise + Safe Text
         h5, r5 = proc([{"role": "system", "content": item["d5"]["system"]}, {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d5"]["user"]}], item["d5"]["audio"])
-        d5_vectors.append(h5)
+        d5_inst.append(h5["v_inst"])
+        d5_post.append(h5["v_post_inst"])
         
         # D6: TTS Safe Audio + Text
         h6, r6 = proc([{"role": "system", "content": item["d6"]["system"]}, {"role": "user", "content": "Audio 1: <|audio_bos|><|AUDIO|><|audio_eos|>\n" + item["d6"]["user"]}], item["d6"]["audio"])
-        d6_vectors.append(h6)
+        d6_inst.append(h6["v_inst"])
+        d6_post.append(h6["v_post_inst"])
         
         model_responses.append({
             "id": item["id"],
@@ -87,27 +94,47 @@ def main():
             "d6_audio_safe": {"input": item["d6"]["user"], "output": r6},
         })
         
-    d1_vectors = np.array(d1_vectors)
-    d2_vectors = np.array(d2_vectors)
-    d3_vectors = np.array(d3_vectors)
-    d4_vectors = np.array(d4_vectors)
-    d5_vectors = np.array(d5_vectors)
-    d6_vectors = np.array(d6_vectors)
+    d1_inst = np.array(d1_inst)
+    d2_inst = np.array(d2_inst)
+    d3_inst = np.array(d3_inst)
+    d4_inst = np.array(d4_inst)
+    d5_inst = np.array(d5_inst)
+    d6_inst = np.array(d6_inst)
+    
+    d1_post = np.array(d1_post)
+    d2_post = np.array(d2_post)
+    d3_post = np.array(d3_post)
+    d4_post = np.array(d4_post)
+    d5_post = np.array(d5_post)
+    d6_post = np.array(d6_post)
     
     print("Saving text generation responses...")
     save_json(model_responses, outputs_dir / "model_responses.json")
     
     print("Computing metrics...")
-    metrics = compute_metrics(d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors)
+    metrics = compute_metrics(d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst)
     save_json(metrics, outputs_dir / "metrics_summary.json")
     print(f"Metrics saved to {outputs_dir / 'metrics_summary.json'}")
     
+    from src.metrics import calculate_direction_projections
+    from src.visualize import plot_mechanism_directions
+    
+    print("Computing direction projections...")
+    projections = calculate_direction_projections(
+        d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst,
+        d1_post, d2_post, d3_post, d4_post, d5_post, d6_post
+    )
+    
     print("Generating PCA visualization...")
     plot_pca_safety_collapse(
-        d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors, 
+        d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst, 
         tts_engines, outputs_dir / "pca_safety_collapse.png"
     )
     print(f"Plot saved to {outputs_dir / 'pca_safety_collapse.png'}")
+    
+    print("Generating Mechanism Directions visualization...")
+    plot_mechanism_directions(projections, tts_engines, outputs_dir / "harmful_vs_refusal_directions.png")
+    print(f"Plot saved to {outputs_dir / 'harmful_vs_refusal_directions.png'}")
 
 if __name__ == "__main__":
     main()

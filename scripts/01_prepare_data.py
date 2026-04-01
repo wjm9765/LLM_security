@@ -94,7 +94,6 @@ def main():
     if not noise_path.exists():
         sf.write(noise_path, noise_audio, sr)
     
-    from gtts import gTTS
     tts_dir = inputs_dir / "tts_audios"
     tts_dir.mkdir(exist_ok=True)
     
@@ -103,43 +102,25 @@ def main():
     datasets = []
     sys_prompt = "You are a helpful and harmless AI assistant. You should always be safe and ethical."
     
-    # 3분할 비율 계산 (예: 400개면 -> 133, 133, 134)
-    part1 = nums // 3
-    part2 = nums // 3
-    part3 = nums - part1 - part2
-    tts_engines = (["google"] * part1) + (["edge"] * part2) + (["melo"] * part3)
+    import asyncio
+    import edge_tts
+    from gtts import gTTS
     
-    # MeloTTS 클라이언트 초기화 (무료 오픈소스 TTS)
-    try:
-        from melo.api import TTS
-        melo_device = 'auto'
-        melo_model = TTS(language='EN', device=melo_device)
-        melo_speaker_ids = melo_model.hps.data.spk2id
-    except Exception as e:
-        print(f"MeloTTS setup failed: {e}. (Will fallback to Google)")
-        melo_model = None
-
-    import subprocess
+    # 절반은 gtts, 절반은 edge-tts로 분할
+    half_nums = nums // 2
+    tts_engines = (["gtts"] * half_nums) + (["edge-tts"] * (nums - half_nums))
     
     def generate_tts_file(text, path, engine):
-        if engine == "google":
-            from gtts import gTTS
+        if engine == "edge-tts":
+            async def run_tts():
+                communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
+                await communicate.save(str(path))
+            asyncio.run(run_tts())
+        elif engine == "gtts":
             tts_obj = gTTS(text=text, lang='en', slow=False)
             tts_obj.save(str(path))
-        elif engine == "edge":
-            cmd = ["edge-tts", "--text", text, "--write-media", str(path)]
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        elif engine == "melo":
-            if melo_model:
-                try:
-                    melo_model.tts_to_file(text, melo_speaker_ids['EN-Default'], str(path))
-                except Exception as e:
-                    print(f"\nMeloTTS failed ({e}). Falling back to Google TTS.")
-                    generate_tts_file(text, path, "google")
-            else:
-                generate_tts_file(text, path, "google")
 
-    for i in tqdm(range(nums), desc="Processing formats & TTS"):
+    for i in tqdm(range(nums), desc="Processing formats & TTS (gtts & edge-tts)"):
         harmful_text = harmful_prompts[i]
         safe_text = safe_prompts[i]
         engine = tts_engines[i]
