@@ -21,5 +21,7 @@ dependencies = [
     "librosa",
     "pyyaml",
     "gtts",
+    "edge-tts",
+    "melotts @ git+https://github.com/myshell-ai/MeloTTS.git",
     "tqdm"
 ]

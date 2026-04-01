@@ -35,10 +35,13 @@ def main():
     layer_idx = config["target_model"]["target_layer"]
     
     d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors = [], [], [], [], [], []
+    tts_engines = []
     model_responses = []
     
     print("Running forward passes & generating responses for all Datasets...")
     for item in tqdm(datasets, desc="Evaluating Data (Activation & Response)"):
+        tts_engines.append(item.get("tts_engine", "google"))
+        
         # Helper to map inputs
         def proc(messages, audio_path=None):
             a_data = [load_audio(audio_path, target_sr=16000)] if audio_path else None
@@ -100,7 +103,10 @@ def main():
     print(f"Metrics saved to {outputs_dir / 'metrics_summary.json'}")
     
     print("Generating PCA visualization...")
-    plot_pca_safety_collapse(d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors, outputs_dir / "pca_safety_collapse.png")
+    plot_pca_safety_collapse(
+        d1_vectors, d2_vectors, d3_vectors, d4_vectors, d5_vectors, d6_vectors, 
+        tts_engines, outputs_dir / "pca_safety_collapse.png"
+    )
     print(f"Plot saved to {outputs_dir / 'pca_safety_collapse.png'}")
 
 if __name__ == "__main__":
