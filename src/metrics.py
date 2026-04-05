@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.decomposition import PCA
 
 def calculate_centroid(vectors: np.ndarray) -> np.ndarray:
     """Calculate the mean vector (centroid) of a set of vectors."""
@@ -79,3 +80,58 @@ def calculate_direction_projections(d1_inst, d2_inst, d3_inst, d4_inst, d5_inst,
     }
     
     return datasets
+
+def calculate_orthogonality_test(d1_inst, d2_inst, d4_inst, d6_inst) -> float:
+    """
+    Calculate the cosine similarity between the Text Safety Direction 
+    (D2 - D1) and the Audio Safety Direction (D4 - D6).
+    A value close to 0 proves the safety manifolds are orthogonal and disjoint.
+    """
+    v_text = calculate_centroid(d2_inst) - calculate_centroid(d1_inst)
+    v_audio = calculate_centroid(d4_inst) - calculate_centroid(d6_inst)
+    
+    v_text_norm = v_text / np.linalg.norm(v_text)
+    v_audio_norm = v_audio / np.linalg.norm(v_audio)
+    
+    cos_sim = float(np.dot(v_text_norm, v_audio_norm))
+    return cos_sim
+
+def calculate_paired_svd_projections(d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst):
+    """
+    Calculate Residuals (Delta = D2 - D1).
+    Perform PCA (or SVD) on these residuals.
+    PC1 -> Pure Text Safety Direction (removing input-specific noise).
+    PC2 -> Orthogonal noise factor.
+    Project all data onto these two pure axes.
+    """
+    # 1. Pairing and Residual calculation
+    residuals = d2_inst - d1_inst # shape (N, D)
+    
+    # 2. Extract principal components
+    pca = PCA(n_components=2)
+    pca.fit(residuals)
+    
+    # pc1 -> Pure Safety direction (the major axis of change when generating harm vs safe)
+    # pc2 -> Orthogonal noise variation
+    pc1 = pca.components_[0]
+    pc2 = pca.components_[1]
+    
+    # Base for projection
+    c1_inst = calculate_centroid(d1_inst)
+
+    def svd_project(data):
+        centered_data = data - c1_inst
+        proj_x = np.dot(centered_data, pc1)
+        proj_y = np.dot(centered_data, pc2)
+        return proj_x, proj_y
+
+    svd_datasets = {
+        "D1": svd_project(d1_inst),
+        "D2": svd_project(d2_inst),
+        "D3": svd_project(d3_inst),
+        "D4": svd_project(d4_inst),
+        "D5": svd_project(d5_inst),
+        "D6": svd_project(d6_inst),
+    }
+
+    return svd_datasets, pca.explained_variance_ratio_

@@ -113,17 +113,26 @@ def main():
     
     print("Computing metrics...")
     metrics = compute_metrics(d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst)
+    
+    from src.metrics import calculate_direction_projections, calculate_orthogonality_test, calculate_paired_svd_projections
+    from src.visualize import plot_mechanism_directions, plot_paired_svd_projection
+    
+    # Orthogonality Test -> Add to metrics
+    ortho_score = calculate_orthogonality_test(d1_inst, d2_inst, d4_inst, d6_inst)
+    print(f"\n[CRITICAL FINDING] Modality Separation Orthogonality (Text Safety Direction vs Audio Safety Direction): {ortho_score:.4f}")
+    metrics["Orthogonality_CosSim_Vtext_Vaudio"] = ortho_score
+    
     save_json(metrics, outputs_dir / "metrics_summary.json")
     print(f"Metrics saved to {outputs_dir / 'metrics_summary.json'}")
-    
-    from src.metrics import calculate_direction_projections
-    from src.visualize import plot_mechanism_directions
     
     print("Computing direction projections...")
     projections = calculate_direction_projections(
         d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst,
         d1_post, d2_post, d3_post, d4_post, d5_post, d6_post
     )
+    
+    print("Computing Paired Residual SVD (Pure Safety Axis)...")
+    svd_projections, var_ratio = calculate_paired_svd_projections(d1_inst, d2_inst, d3_inst, d4_inst, d5_inst, d6_inst)
     
     print("Generating PCA visualization...")
     plot_pca_safety_collapse(
@@ -135,6 +144,10 @@ def main():
     print("Generating Mechanism Directions visualization...")
     plot_mechanism_directions(projections, tts_engines, outputs_dir / "harmful_vs_refusal_directions.png")
     print(f"Plot saved to {outputs_dir / 'harmful_vs_refusal_directions.png'}")
+
+    print("Generating SVD 'Pure Text Safety Direction' visualization...")
+    plot_paired_svd_projection(svd_projections, var_ratio, tts_engines, outputs_dir / "paired_residual_svd.png")
+    print(f"Plot saved to {outputs_dir / 'paired_residual_svd.png'}")
 
 if __name__ == "__main__":
     main()

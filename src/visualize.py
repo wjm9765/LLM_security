@@ -95,3 +95,44 @@ def plot_mechanism_directions(projections, tts_engines, output_path: str):
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
+
+def plot_paired_svd_projection(svd_projections, variance_ratio, tts_engines, output_path: str):
+    plt.figure(figsize=(14, 10))
+    
+    plt.scatter(svd_projections["D1"][0], svd_projections["D1"][1], c='blue', label='D1 (Safe Text)', alpha=0.5, marker='o')
+    plt.scatter(svd_projections["D2"][0], svd_projections["D2"][1], c='red', label='D2 (Harmful Text)', alpha=0.5, marker='o')
+    plt.scatter(svd_projections["D3"][0], svd_projections["D3"][1], c='orange', label='D3 (Noise + Harmful)', alpha=0.6, marker='x')
+    plt.scatter(svd_projections["D5"][0], svd_projections["D5"][1], c='cyan', label='D5 (Noise + Safe)', alpha=0.6, marker='s')
+    
+    unique_engines = list(set(tts_engines))
+    colors_d4 = {'gtts': 'purple', 'edge-tts': 'darkviolet'}
+    colors_d6 = {'gtts': 'green', 'edge-tts': 'limegreen'}
+    markers = {'gtts': '^', 'edge-tts': 'v'}
+    
+    for engine in unique_engines:
+        idx = [i for i, e in enumerate(tts_engines) if e == engine]
+        
+        plt.scatter(svd_projections["D4"][0][idx], svd_projections["D4"][1][idx], 
+                    c=colors_d4.get(engine, 'purple'), 
+                    label=f'D4 (Audio + Harmful) - {engine}', 
+                    alpha=0.7, 
+                    marker=markers.get(engine, '^'))
+                    
+        plt.scatter(svd_projections["D6"][0][idx], svd_projections["D6"][1][idx], 
+                    c=colors_d6.get(engine, 'green'), 
+                    label=f'D6 (Audio + Safe) - {engine}', 
+                    alpha=0.7, 
+                    marker=markers.get(engine, 'D'))
+
+    plt.title(f"Paired Residual SVD Projection: Modality Separation Evidence\n(PC1 Explained Var: {variance_ratio[0]*100:.2f}%)")
+    plt.xlabel("Pure Text Safety Direction (PC1 of Residuals $\Delta = D2 - D1$)")
+    plt.ylabel("Orthogonal Noise Level (PC2 of Residuals)")
+    
+    plt.axhline(0, color='gray', linestyle='--', alpha=0.5)
+    plt.axvline(0, color='gray', linestyle='--', alpha=0.5)
+    
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
